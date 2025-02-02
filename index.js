@@ -23,7 +23,7 @@ wss.on('connection', (ws) => {
                     subscribers[topic] = [];
                 }
                 subscribers[topic].push(ws);
-                console.log(`Client subscribed to topic: ${topic}`);
+                console.log(`Client subscribed to topics: ${topic}`);
 
                 if (queues[topic] && queues[topic].length > 0) {
                     console.log(`Sending pending messages for topic: ${topic}`);
