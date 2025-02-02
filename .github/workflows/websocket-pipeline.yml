@@ -39,8 +39,6 @@ jobs:
             docker pull ${{ secrets.DOCKER_USERNAME }}/${{secrets.DOCKER_IMAGE_WEBSOCKET}}:latest
             docker stop ${{secrets.DOCKER_IMAGE_WEBSOCKET}}|| true
             docker rm ${{secrets.DOCKER_IMAGE_WEBSOCKET}} || true
-            docker run -e MONGODB_URL=${{secrets.MONGODB_URL}} \
-                       -e MONGODB_DB_NAME=${{secrets.MONGODB_DB_NAME}} \
-                       -e MONGODB_COLLECTION=${{secrets.MONGODB_COLLECTION}} \
+            docker run -e PORT=${{secrets.PORT}} \
                        -d --name ${{secrets.DOCKER_IMAGE_WEBSOCKET}} \
-                       -p 4000:4000 ${{secrets.DOCKER_USERNAME}}/${{secrets.DOCKER_IMAGE_WEBSOCKET}}:latest
+                       -p ${{secrets.PORT}}:${{secrets.PORT}} ${{secrets.DOCKER_USERNAME}}/${{secrets.DOCKER_IMAGE_WEBSOCKET}}:latest
