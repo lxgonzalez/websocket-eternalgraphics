@@ -133,8 +133,13 @@ wss.on('connection', (ws) => {
 });
 
 (async () => {
-    await connectToMongoDB();
-    console.log(`Message broker running on port ${PORT}`);
-})();
-
+    try {
+      await connectToMongoDB();
+      wss.on('listening', () => console.log(`Message broker running on port ${PORT}`));
+      console.log('WebSocket server initialized.');
+    } catch (error) {
+      console.error('Failed to initialize server:', error);
+      process.exit(1);
+    }
+  })();
 module.exports = { broadcastMessage };
