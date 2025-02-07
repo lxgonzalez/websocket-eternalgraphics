@@ -10,6 +10,8 @@ const MONGODB_COLLECTION = process.env.MONGODB_COLLECTION;
 const wss = new WebSocket.Server({ port: PORT });
 
 let db;
+let activeClients = new Set();
+
 async function connectToMongoDB() {
     try {
         const client = await MongoClient.connect(MONGODB_URL, { useUnifiedTopology: true });
@@ -87,23 +89,29 @@ async function broadcastMessage(message) {
 }
 
 async function handleClientDisconnection(ws) {
-    const topics = await db.collection(MONGODB_COLLECTION).find({}).toArray();
-    topics.forEach(async (topic) => {
-        // Solo eliminar a los suscriptores si el cliente está desconectado
-        if (ws.readyState === WebSocket.CLOSED) {
+    // Eliminar al cliente de la lista de WebSockets activos
+    if (activeClients.has(ws)) {
+        activeClients.delete(ws);  // Eliminar el cliente de la lista de clientes activos
+        console.log('Client removed from active list.', ws._socket.remoteAddress);
+
+        // Eliminar al cliente de los suscriptores de todos los temas
+        const topics = await db.collection(MONGODB_COLLECTION).find({}).toArray();
+        topics.forEach(async (topic) => {
             await db.collection(MONGODB_COLLECTION).updateOne(
                 { topic: topic.topic },
                 { $pull: { subscribers: ws._socket.remoteAddress } }
             );
             console.log(`Removed subscriber ${ws._socket.remoteAddress} from topic ${topic.topic}`);
-        }
-    });
-    console.log('Client disconnected.');
+        });
+        console.log('Client disconnected and removed from subscriptions.');
+    }
 }
+
 
 
 wss.on('connection', (ws) => {
     console.log('New client connected.', ws._socket.remoteAddress);
+    activeClients.add(ws); // Registrar al cliente en la lista de WebSockets activos
 
     ws.on('message', async (message) => {
         console.log('Message received from client:', message);
@@ -133,9 +141,11 @@ wss.on('connection', (ws) => {
         }
     });
 
-    ws.on('close', () => handleClientDisconnection(ws));
+    // Maneja la desconexión
+    ws.on('close', () => handleClientDisconnection(ws));  // Aquí manejamos la desconexión
     ws.on('error', (error) => console.error('Error in WebSocket connection:', error));
 });
+
 
 (async () => {
     try {
