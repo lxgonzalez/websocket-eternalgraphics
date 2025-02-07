@@ -88,14 +88,21 @@ async function broadcastMessage(message) {
 
 async function handleClientDisconnection(ws) {
     const topics = await db.collection(MONGODB_COLLECTION).find({}).toArray();
+    
+    // Iterate through each topic the client is subscribed to
     topics.forEach(async (topic) => {
-        await db.collection(MONGODB_COLLECTION).updateOne(
-            { topic: topic.topic },
-            { $pull: { subscribers: ws._socket.remoteAddress } }
-        );
+        // Only remove the client from the subscribers list for topics they are subscribed to
+        if (topic.subscribers.includes(ws._socket.remoteAddress)) {
+            await db.collection(MONGODB_COLLECTION).updateOne(
+                { topic: topic.topic },
+                { $pull: { subscribers: ws._socket.remoteAddress } }
+            );
+            console.log(`Client removed from topic: ${topic.topic}`);
+        }
     });
     console.log('Client disconnected.');
 }
+
 
 wss.on('connection', (ws) => {
     console.log('New client connected.', ws._socket.remoteAddress);
