@@ -17,7 +17,7 @@ async function connectToMongoDB() {
         console.log('Connected to MongoDB');
     } catch (error) {
         console.error('Error connecting to MongoDB:', error);
-        process.exit(1); 
+        process.exit(1);
     }
 }
 
@@ -67,7 +67,7 @@ async function broadcastMessage(message) {
 
     const topicData = await db.collection(MONGODB_COLLECTION).findOne({ topic });
     if (!topicData?.subscribers?.length) {
-        await queueMessage(topic, message); 
+        await queueMessage(topic, message);
         return;
     }
 
@@ -81,23 +81,21 @@ async function broadcastMessage(message) {
                 console.error('Error sending message to client:', error);
             }
         } else {
-            await queueMessage(topic, message); 
+            await queueMessage(topic, message);
         }
     });
 }
 
 async function handleClientDisconnection(ws) {
     const topics = await db.collection(MONGODB_COLLECTION).find({}).toArray();
-    
-    // Iterate through each topic the client is subscribed to
     topics.forEach(async (topic) => {
-        // Only remove the client from the subscribers list for topics they are subscribed to
-        if (topic.subscribers.includes(ws._socket.remoteAddress)) {
+        // Solo eliminar a los suscriptores si el cliente está desconectado
+        if (ws.readyState === WebSocket.CLOSED) {
             await db.collection(MONGODB_COLLECTION).updateOne(
                 { topic: topic.topic },
                 { $pull: { subscribers: ws._socket.remoteAddress } }
             );
-            console.log(`Client removed from topic: ${topic.topic}`);
+            console.log(`Removed subscriber ${ws._socket.remoteAddress} from topic ${topic.topic}`);
         }
     });
     console.log('Client disconnected.');
@@ -141,12 +139,12 @@ wss.on('connection', (ws) => {
 
 (async () => {
     try {
-      await connectToMongoDB();
-      wss.on('listening', () => console.log(`Message broker running on port ${PORT}`));
-      console.log('WebSocket server initialized.');
+        await connectToMongoDB();
+        wss.on('listening', () => console.log(`Message broker running on port ${PORT}`));
+        console.log('WebSocket server initialized.');
     } catch (error) {
-      console.error('Failed to initialize server:', error);
-      process.exit(1);
+        console.error('Failed to initialize server:', error);
+        process.exit(1);
     }
-  })();
+})();
 module.exports = { broadcastMessage };
